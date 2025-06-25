@@ -68,7 +68,7 @@ n8n:
     
     # Database EXTERNO
     DB_TYPE: "postgresdb"
-    DB_POSTGRESDB_HOST: "postgres-postgresql.default.svc.cluster.local"  # Service name do PostgreSQL externo
+    DB_POSTGRESDB_HOST: "postgres-postgresql.n8n.svc.cluster.local"  # Service name do PostgreSQL externo
     DB_POSTGRESDB_PORT: "5432"
     DB_POSTGRESDB_DATABASE: "n8ndb"
     DB_POSTGRESDB_USER: "n8n"
