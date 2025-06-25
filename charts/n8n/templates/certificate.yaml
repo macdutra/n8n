@@ -1,0 +1,40 @@
+{{- if .Values.certificates.enabled }}
+{{- range .Values.ingress.tls }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .secretName }}
+  labels:
+    {{- include "n8n.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ .secretName }}
+  issuerRef:
+    name: {{ $.Values.certificates.issuer }}
+    kind: ClusterIssuer
+  dnsNames:
+    {{- range .hosts }}
+    - {{ . }}
+    {{- end }}
+---
+{{- end }}
+{{- if .Values.ingressApi.enabled }}
+{{- range .Values.ingressApi.tls }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .secretName }}
+  labels:
+    {{- include "n8n.labels" $ | nindent 4 }}
+spec:
+  secretName: {{ .secretName }}
+  issuerRef:
+    name: {{ $.Values.certificates.issuer }}
+    kind: ClusterIssuer
+  dnsNames:
+    {{- range .hosts }}
+    - {{ . }}
+    {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

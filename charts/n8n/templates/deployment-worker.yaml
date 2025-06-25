@@ -1,30 +1,28 @@
+{{- if .Values.n8n.workers.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "n8n.fullname" . }}-main
+  name: {{ include "n8n.fullname" . }}-worker
   labels:
     {{- include "n8n.labels" . | nindent 4 }}
-    app.kubernetes.io/component: main
+    app.kubernetes.io/component: worker
 spec:
-  replicas: {{ .Values.n8n.main.replicaCount }}
+  replicas: {{ .Values.n8n.workers.replicaCount }}
   selector:
     matchLabels:
       {{- include "n8n.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: main
+      app.kubernetes.io/component: worker
   template:
     metadata:
       labels:
         {{- include "n8n.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: main
+        app.kubernetes.io/component: worker
     spec:
       containers:
-      - name: n8n-main
+      - name: n8n-worker
         image: "{{ .Values.n8n.image.registry }}/{{ .Values.n8n.image.repository }}:{{ .Values.n8n.image.tag }}"
         imagePullPolicy: {{ .Values.n8n.image.pullPolicy }}
-        command: ["n8n", "start"]
-        ports:
-        - containerPort: 5678
-          name: http
+        command: ["n8n", "worker"]
         env:
         {{- range $key, $value := .Values.n8n.config }}
         - name: {{ $key }}
@@ -44,12 +42,6 @@ spec:
               name: {{ .Values.n8n.secrets.redis.passwordSecretName | default (printf "%s-secret" (include "n8n.fullname" .)) }}
               key: {{ .Values.n8n.secrets.redis.passwordSecretKey }}
         {{- end }}
-        # Basic Auth Password
-        - name: N8N_BASIC_AUTH_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.n8n.secrets.basicAuth.passwordSecretName | default (printf "%s-secret" (include "n8n.fullname" .)) }}
-              key: {{ .Values.n8n.secrets.basicAuth.passwordSecretKey }}
         # Encryption Key
         - name: N8N_ENCRYPTION_KEY
           valueFrom:
@@ -57,23 +49,12 @@ spec:
               name: {{ .Values.n8n.secrets.encryption.keySecretName | default (printf "%s-secret" (include "n8n.fullname" .)) }}
               key: {{ .Values.n8n.secrets.encryption.keySecretKey }}
         resources:
-          {{- toYaml .Values.n8n.main.resources | nindent 10 }}
+          {{- toYaml .Values.n8n.workers.resources | nindent 10 }}
         volumeMounts:
         - name: n8n-data
           mountPath: /home/node/.n8n
-        readinessProbe:
-          httpGet:
-            path: /healthz
-            port: 5678
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 5678
-          initialDelaySeconds: 60
-          periodSeconds: 30
       volumes:
       - name: n8n-data
         persistentVolumeClaim:
           claimName: {{ include "n8n.fullname" . }}-pvc
+{{- end }}

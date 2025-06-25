@@ -139,9 +139,9 @@ n8n:
     
     # Database password - usar secret existente do PostgreSQL
     database:
-      passwordSecretName: "postgres-postgresql"
-      passwordSecretKey: "password"
-      password: ""
+      passwordSecretName: "postgres-postgresql"  # ✅ CORREÇÃO: Secret existente
+      passwordSecretKey: "password"     # ✅ CORREÇÃO: Key correta
+      password: ""  # ✅ CORREÇÃO: Vazio para usar do secret existente
     
     # Basic Auth
     basicAuth:
@@ -273,3 +273,12 @@ serviceMonitor:
 # Overrides
 nameOverride: ""
 fullnameOverride: ""
+
+service:
+  enabled: true
+  annotations: {}
+  # -- Service types allow you to specify what kind of Service you want.
+  # E.g., ClusterIP, NodePort, LoadBalancer, ExternalName
+  type: ClusterIP
+  # -- Service port
+  port: 80

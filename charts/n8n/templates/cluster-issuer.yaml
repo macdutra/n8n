@@ -1,0 +1,26 @@
+{{- if .Values.certificates.enabled }}
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: {{ .Values.certificates.issuer }}
+  labels:
+    {{- include "n8n.labels" . | nindent 4 }}
+spec:
+  acme:
+    # ACME server URL for Let's Encrypt production
+    server: https://acme-v02.api.letsencrypt.org/directory
+    # Email address used for ACME registration
+    email: {{ .Values.certificates.email }}
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: {{ .Values.certificates.issuer }}-private-key
+    # Enable the HTTP-01 challenge provider
+    solvers:
+    - http01:
+        ingress:
+          class: {{ .Values.ingress.className | default "nginx" }}
+          podTemplate:
+            spec:
+              nodeSelector:
+                "kubernetes.io/os": linux
+{{- end }}

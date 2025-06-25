@@ -7,8 +7,6 @@ Expand the name of the chart.
 
 {{/*
 Create a default fully qualified app name.
-We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
-If release name contains chart name it will be used as a full name.
 */}}
 {{- define "n8n.fullname" -}}
 {{- if .Values.fullnameOverride }}
@@ -50,56 +48,71 @@ app.kubernetes.io/name: {{ include "n8n.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
+{{/*
+PostgreSQL fullname
+*/}}
+{{- define "n8n.postgresql.fullname" -}}
+{{- printf "%s-postgresql" (include "n8n.fullname" .) -}}
+{{- end }}
 
-{{/* Create the name of the service account to use */}}
-{{- define "n8n.serviceAccountName" -}}
-{{- if .Values.main.serviceAccount.create }}
-{{- default (include "n8n.fullname" .) .Values.main.serviceAccount.name }}
+{{/*
+Redis fullname
+*/}}
+{{- define "n8n.redis.fullname" -}}
+{{- printf "%s-redis" (include "n8n.fullname" .) -}}
+{{- end }}
+
+{{/*
+Get the database password secret name
+*/}}
+{{- define "n8n.database.secretName" -}}
+{{- if .Values.n8n.secrets.database.passwordSecretName }}
+{{- .Values.n8n.secrets.database.passwordSecretName }}
 {{- else }}
-{{- default "default" .Values.main.serviceAccount.name }}
+{{- printf "%s-secret" (include "n8n.fullname" .) }}
 {{- end }}
 {{- end }}
 
-{{/* PVC existing, emptyDir, Dynamic */}}
-{{- define "n8n.pvc" -}}
-{{- if or (not .Values.main.persistence.enabled) (eq .Values.main.persistence.type "emptyDir") -}}
-          emptyDir: {}
-{{- else if and .Values.main.persistence.enabled .Values.main.persistence.existingClaim -}}
-          persistentVolumeClaim:
-            claimName: {{ .Values.main.persistence.existingClaim }}
-{{- else if and .Values.main.persistence.enabled (eq .Values.main.persistence.type "dynamic")  -}}
-          persistentVolumeClaim:
-            claimName: {{ include "n8n.fullname" . }}
+{{/*
+Get the Redis password secret name
+*/}}
+{{- define "n8n.redis.secretName" -}}
+{{- if .Values.n8n.secrets.redis.passwordSecretName }}
+{{- .Values.n8n.secrets.redis.passwordSecretName }}
+{{- else }}
+{{- printf "%s-secret" (include "n8n.fullname" .) }}
 {{- end }}
 {{- end }}
 
-
-{{/* Create environment variables from yaml tree */}}
-{{- define "toEnvVars" -}}
-    {{- $prefix := "" }}
-    {{- if .prefix }}
-        {{- $prefix = printf "%s_" .prefix }}
-    {{- end }}
-    {{- range $key, $value := .values }}
-        {{- if kindIs "map" $value -}}
-            {{- dict "values" $value "prefix" (printf "%s%s" $prefix ($key | upper)) "isSecret" $.isSecret | include "toEnvVars" -}}
-        {{- else -}}
-            {{- if $.isSecret -}}
-{{ $prefix }}{{ $key | upper }}: {{ $value | toString | b64enc }}{{ "\n" }}
-            {{- else -}}
-{{ $prefix }}{{ $key | upper }}: {{ $value | toString | quote }}{{ "\n" }}
-            {{- end -}}
-        {{- end -}}
-    {{- end -}}
+{{/*
+Get the basic auth secret name
+*/}}
+{{- define "n8n.basicAuth.secretName" -}}
+{{- if .Values.n8n.secrets.basicAuth.passwordSecretName }}
+{{- .Values.n8n.secrets.basicAuth.passwordSecretName }}
+{{- else }}
+{{- printf "%s-secret" (include "n8n.fullname" .) }}
+{{- end }}
 {{- end }}
 
+{{/*
+Get the encryption key secret name
+*/}}
+{{- define "n8n.encryption.secretName" -}}
+{{- if .Values.n8n.secrets.encryption.keySecretName }}
+{{- .Values.n8n.secrets.encryption.keySecretName }}
+{{- else }}
+{{- printf "%s-secret" (include "n8n.fullname" .) }}
+{{- end }}
+{{- end }}
 
-{{/* Validate Valkey/Redis configuration when webhooks are enabled*/}}
-{{- define "n8n.validateValkey" -}}
-{{- $envVars := fromYaml (include "toEnvVars" (dict "values" .Values.main.config "prefix" "")) -}}
-{{- if and .Values.webhook.enabled (not $envVars.QUEUE_BULL_REDIS_HOST) -}}
-{{- fail "Webhook processes rely on Valkey. Please set a Redis/Valkey host when webhook.enabled=true" -}}
-{{- end -}}
-{{- end -}}
-
-
+{{/*
+Create the name of the service account to use
+*/}}
+{{- define "n8n.serviceAccountName" -}}
+{{- if .Values.serviceAccount.create }}
+{{- default (include "n8n.fullname" .) .Values.serviceAccount.name }}
+{{- else }}
+{{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}

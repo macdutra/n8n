@@ -1,27 +1,28 @@
+{{- if .Values.n8n.webhooks.enabled }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "n8n.fullname" . }}-main
+  name: {{ include "n8n.fullname" . }}-webhook
   labels:
     {{- include "n8n.labels" . | nindent 4 }}
-    app.kubernetes.io/component: main
+    app.kubernetes.io/component: webhook
 spec:
-  replicas: {{ .Values.n8n.main.replicaCount }}
+  replicas: {{ .Values.n8n.webhooks.replicaCount }}
   selector:
     matchLabels:
       {{- include "n8n.selectorLabels" . | nindent 6 }}
-      app.kubernetes.io/component: main
+      app.kubernetes.io/component: webhook
   template:
     metadata:
       labels:
         {{- include "n8n.selectorLabels" . | nindent 8 }}
-        app.kubernetes.io/component: main
+        app.kubernetes.io/component: webhook
     spec:
       containers:
-      - name: n8n-main
+      - name: n8n-webhook
         image: "{{ .Values.n8n.image.registry }}/{{ .Values.n8n.image.repository }}:{{ .Values.n8n.image.tag }}"
         imagePullPolicy: {{ .Values.n8n.image.pullPolicy }}
-        command: ["n8n", "start"]
+        command: ["n8n", "webhook"]
         ports:
         - containerPort: 5678
           name: http
@@ -57,7 +58,7 @@ spec:
               name: {{ .Values.n8n.secrets.encryption.keySecretName | default (printf "%s-secret" (include "n8n.fullname" .)) }}
               key: {{ .Values.n8n.secrets.encryption.keySecretKey }}
         resources:
-          {{- toYaml .Values.n8n.main.resources | nindent 10 }}
+          {{- toYaml .Values.n8n.webhooks.resources | nindent 10 }}
         volumeMounts:
         - name: n8n-data
           mountPath: /home/node/.n8n
@@ -67,13 +68,8 @@ spec:
             port: 5678
           initialDelaySeconds: 30
           periodSeconds: 10
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: 5678
-          initialDelaySeconds: 60
-          periodSeconds: 30
       volumes:
       - name: n8n-data
         persistentVolumeClaim:
           claimName: {{ include "n8n.fullname" . }}-pvc
+{{- end }}

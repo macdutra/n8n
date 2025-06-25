@@ -1,0 +1,36 @@
+{{- if .Values.ingressApi.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "n8n.fullname" . }}-api-ingress
+  labels:
+    {{- include "n8n.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
+    nginx.ingress.kubernetes.io/proxy-body-size: "64m"
+    nginx.ingress.kubernetes.io/rate-limit: {{ .Values.ingressApi.rateLimit.requests | default "300" | quote }}
+    nginx.ingress.kubernetes.io/rate-limit-window: {{ .Values.ingressApi.rateLimit.window | default "1m" | quote }}
+    nginx.ingress.kubernetes.io/cors-allow-origin: {{ .Values.ingressApi.cors.allowOrigin | default "*" | quote }}
+    nginx.ingress.kubernetes.io/cors-allow-methods: {{ .Values.ingressApi.cors.allowMethods | default "GET, POST, PUT, DELETE, OPTIONS" | quote }}
+    nginx.ingress.kubernetes.io/cors-allow-headers: {{ .Values.ingressApi.cors.allowHeaders | default "DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization" | quote }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+  - host: {{ .Values.ingressApi.subdomain }}.{{ .Values.global.domain }}
+    http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "n8n.fullname" . }}-main
+            port:
+              number: 5678
+      - path: /rest
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "n8n.fullname" . }}-main
+            port:
+              number: 5678
+{{- end }}

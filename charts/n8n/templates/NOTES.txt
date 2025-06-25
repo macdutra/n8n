@@ -2,21 +2,31 @@
 {{- if .Values.ingress.enabled }}
 {{- range $host := .Values.ingress.hosts }}
   {{- range .paths }}
-  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ . }}
+  http{{ if $.Values.ingress.tls }}s{{ end }}://{{ $host.host }}{{ .path }}
   {{- end }}
 {{- end }}
-{{- else if contains "NodePort" (default "ClusterIP" .Values.main.service.type) }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "n8n.fullname" . }})
+{{- else if contains "NodePort" .Values.service.main.type }}
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "n8n.fullname" . }}-main)
   export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
-{{- else if contains "LoadBalancer" (default "ClusterIP" .Values.main.service.type) }}
+{{- else if contains "LoadBalancer" .Values.service.main.type }}
      NOTE: It may take a few minutes for the LoadBalancer IP to be available.
-           You can watch the status of by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "n8n.fullname" . }}'
-  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "n8n.fullname" . }} --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
-  echo http://$SERVICE_IP:{{ .Values.main.service.port }}
-{{- else if contains "ClusterIP" (default "ClusterIP" .Values.main.service.type) }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "n8n.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+           You can watch its status by running 'kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "n8n.fullname" . }}-main'
+  export SERVICE_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "n8n.fullname" . }}-main --template "{{"{{ range (index .status.loadBalancer.ingress 0) }}{{.}}{{ end }}"}}")
+  echo http://$SERVICE_IP:{{ .Values.service.main.port }}
+{{- else if contains "ClusterIP" .Values.service.main.type }}
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "n8n.name" . }},app.kubernetes.io/instance={{ .Release.Name }},app.kubernetes.io/component=main" -o jsonpath="{.items[0].metadata.name}")
   export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
   echo "Visit http://127.0.0.1:8080 to use your application"
   kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+{{- end }}
+
+2. Default login credentials:
+   Username: {{ .Values.n8n.security.basicAuth.user }}
+   Password: Check the secret: kubectl get secret {{ include "n8n.fullname" . }}-secret -o jsonpath="{.data.basic-auth-password}" | base64 -d
+
+3. To access webhooks:
+{{- if .Values.n8n.webhooks.enabled }}
+   kubectl --namespace {{ .Release.Namespace }} port-forward svc/{{ include "n8n.fullname" . }}-webhook 8081:5678
+   Webhook URL: http://localhost:8081/webhook/{your-webhook-id}
 {{- end }}
