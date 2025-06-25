@@ -183,6 +183,13 @@ service:
     type: ClusterIP
     port: 5678
     targetPort: 5678
+  enabled: true
+  annotations: {}
+  # -- Service types allow you to specify what kind of Service you want.
+  # E.g., ClusterIP, NodePort, LoadBalancer, ExternalName
+  type: ClusterIP
+  # -- Service port
+  port: 80
 
 # Ingress - HABILITADO para teste
 ingress:
@@ -273,3 +280,4 @@ serviceMonitor:
 # Overrides
 nameOverride: ""
 fullnameOverride: ""
+
